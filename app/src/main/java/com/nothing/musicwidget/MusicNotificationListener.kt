@@ -17,6 +17,7 @@ class MusicNotificationListener : NotificationListenerService() {
         var currentTitle: String = "Nada reproduciéndose"
         var currentArtist: String = "Inicia Spotify o tu reproductor"
         var currentAlbumArt: Bitmap? = null
+        var currentService: String = "system"
         var isPlaying: Boolean = false
         var currentPositionMs: Long = 0
         var currentDurationMs: Long = 0
@@ -94,9 +95,22 @@ class MusicNotificationListener : NotificationListenerService() {
         currentAlbumArt = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
 
+        val pkg = (controller.packageName ?: "").lowercase()
+        currentService = when {
+            pkg.contains("spotify") -> "spotify"
+            pkg.contains("youtube") || pkg.contains("music") -> "ytmusic"
+            pkg.contains("apple") -> "apple"
+            else -> "system"
+        }
+
         isPlaying = state?.state == PlaybackState.STATE_PLAYING
         currentPositionMs = state?.position ?: 0
         currentDurationMs = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0
+
+        // Auto-despertar: si la música comienza a reproducirse y el widget estaba en Idle (Capa 1), pasar a Capa 2
+        if (isPlaying && NothingMusicWidgetProvider.currentLayer == 1) {
+            NothingMusicWidgetProvider.currentLayer = 2
+        }
 
         NothingMusicWidgetProvider.updateAllWidgets(this)
     }

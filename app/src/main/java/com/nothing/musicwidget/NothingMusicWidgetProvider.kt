@@ -16,8 +16,9 @@ class NothingMusicWidgetProvider : AppWidgetProvider() {
         const val ACTION_NEXT = "com.nothing.musicwidget.ACTION_NEXT"
         const val ACTION_PREV = "com.nothing.musicwidget.ACTION_PREV"
         const val ACTION_TOGGLE_LAYER = "com.nothing.musicwidget.ACTION_TOGGLE_LAYER"
+        const val ACTION_GO_LAYER_2 = "com.nothing.musicwidget.ACTION_GO_LAYER_2"
 
-        var currentLayer = 2
+        var currentLayer = 1
 
         fun updateAllWidgets(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
@@ -42,29 +43,46 @@ class NothingMusicWidgetProvider : AppWidgetProvider() {
 
                 when (currentLayer) {
                     1 -> {
-                        val idleBitmap = VisualizerGenerator.createIdleDotNoteBitmap(240, false)
+                        val idleBitmap = VisualizerGenerator.createIdleDotNoteBitmap(320, false)
                         views.setImageViewBitmap(R.id.iv_idle_note, idleBitmap)
                         views.setOnClickPendingIntent(R.id.widget_container_layer1, getPendingSelfIntent(context, ACTION_TOGGLE_LAYER))
                     }
                     2 -> {
-                        if (MusicNotificationListener.currentAlbumArt != null) {
-                            views.setImageViewBitmap(R.id.iv_cover_art, MusicNotificationListener.currentAlbumArt)
-                        } else {
-                            views.setImageViewResource(R.id.iv_cover_art, R.drawable.ic_default_cover)
-                        }
+                        val rawArt = MusicNotificationListener.currentAlbumArt
+                        val coverBitmap = VisualizerGenerator.getRoundedSquircleBitmap(rawArt, 0.15f)
+                        views.setImageViewBitmap(R.id.iv_cover_art, coverBitmap)
 
-                        val levels = if (isPlaying) {
-                            floatArrayOf(
-                                Random.nextFloat() * 3.2f + 1.6f,
-                                Random.nextFloat() * 3.8f + 1.2f,
-                                Random.nextFloat() * 3.4f + 1.4f,
-                                Random.nextFloat() * 3.0f + 1.2f
+                        val isDark = VisualizerGenerator.isBitmapDark(rawArt)
+                        val frameIds = intArrayOf(
+                            R.id.iv_viz_frame1,
+                            R.id.iv_viz_frame2,
+                            R.id.iv_viz_frame3,
+                            R.id.iv_viz_frame4,
+                            R.id.iv_viz_frame5,
+                            R.id.iv_viz_frame6
+                        )
+
+                        if (isPlaying) {
+                            views.setInt(R.id.vf_dot_visualizer, "setFlipInterval", 120)
+                            val frameLevels = arrayOf(
+                                floatArrayOf(1.2f, 2.8f, 3.8f, 2.0f),
+                                floatArrayOf(2.5f, 3.9f, 2.4f, 1.4f),
+                                floatArrayOf(3.6f, 2.1f, 1.8f, 3.2f),
+                                floatArrayOf(2.1f, 3.4f, 3.9f, 2.8f),
+                                floatArrayOf(3.8f, 1.9f, 2.6f, 3.7f),
+                                floatArrayOf(1.8f, 3.6f, 2.2f, 1.6f)
                             )
+                            for (i in 0 until 6) {
+                                val vizBmp = VisualizerGenerator.createVisualizerBitmap(frameLevels[i], isDark, 180, 140)
+                                views.setImageViewBitmap(frameIds[i], vizBmp)
+                            }
                         } else {
-                            floatArrayOf(1f, 1f, 1f, 1f)
+                            val idleLevels = floatArrayOf(1f, 1f, 1f, 1f)
+                            val idleBmp = VisualizerGenerator.createVisualizerBitmap(idleLevels, isDark, 180, 140)
+                            for (id in frameIds) {
+                                views.setImageViewBitmap(id, idleBmp)
+                            }
                         }
-                        val vizBitmap = VisualizerGenerator.createVisualizerBitmap(levels, true, 200, 160)
-                        views.setImageViewBitmap(R.id.iv_dot_visualizer, vizBitmap)
 
                         views.setOnClickPendingIntent(R.id.widget_container_layer2, getPendingSelfIntent(context, ACTION_TOGGLE_LAYER))
                     }
@@ -72,26 +90,25 @@ class NothingMusicWidgetProvider : AppWidgetProvider() {
                         views.setTextViewText(R.id.tv_track_title, MusicNotificationListener.currentTitle)
                         views.setTextViewText(R.id.tv_track_artist, MusicNotificationListener.currentArtist)
 
-                        if (MusicNotificationListener.currentAlbumArt != null) {
-                            views.setImageViewBitmap(R.id.iv_details_art, MusicNotificationListener.currentAlbumArt)
-                        } else {
-                            views.setImageViewResource(R.id.iv_details_art, R.drawable.ic_default_cover)
-                        }
+                        val rawArt = MusicNotificationListener.currentAlbumArt
+                        val detailCoverBitmap = VisualizerGenerator.getRoundedSquircleBitmap(rawArt, 0.11f)
+                        views.setImageViewBitmap(R.id.iv_details_art, detailCoverBitmap)
 
-                        views.setImageViewResource(
-                            R.id.btn_widget_play_pause,
-                            if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-                        )
+                        val serviceIcon = when (MusicNotificationListener.currentService) {
+                            "spotify" -> R.drawable.ic_service_spotify
+                            "ytmusic" -> R.drawable.ic_service_ytmusic
+                            else -> R.drawable.ic_service_music
+                        }
+                        views.setImageViewResource(R.id.iv_player_service, serviceIcon)
 
                         val duration = MusicNotificationListener.currentDurationMs
                         val pos = MusicNotificationListener.currentPositionMs
-                        val progress = if (duration > 0) ((pos.toFloat() / duration) * 100).toInt() else 0
+                        val progress = if (duration > 0) ((pos.toFloat() / duration) * 100).toInt().coerceIn(0, 100) else 0
                         views.setProgressBar(R.id.pb_timeline, 100, progress, false)
 
-                        views.setOnClickPendingIntent(R.id.btn_widget_play_pause, getPendingSelfIntent(context, ACTION_PLAY_PAUSE))
-                        views.setOnClickPendingIntent(R.id.btn_widget_next, getPendingSelfIntent(context, ACTION_NEXT))
-                        views.setOnClickPendingIntent(R.id.btn_widget_prev, getPendingSelfIntent(context, ACTION_PREV))
-                        views.setOnClickPendingIntent(R.id.iv_details_art, getPendingSelfIntent(context, ACTION_TOGGLE_LAYER))
+                        views.setOnClickPendingIntent(R.id.iv_details_art, getPendingSelfIntent(context, ACTION_GO_LAYER_2))
+                        views.setOnClickPendingIntent(R.id.iv_player_service, getPendingSelfIntent(context, ACTION_PLAY_PAUSE))
+                        views.setOnClickPendingIntent(R.id.widget_container_layer3, getPendingSelfIntent(context, ACTION_TOGGLE_LAYER))
                     }
                 }
 
@@ -100,7 +117,7 @@ class NothingMusicWidgetProvider : AppWidgetProvider() {
                 e.printStackTrace()
                 try {
                     val fallbackViews = RemoteViews(context.packageName, R.layout.widget_nothing_music_layer1)
-                    val idleBitmap = VisualizerGenerator.createIdleDotNoteBitmap(240, false)
+                    val idleBitmap = VisualizerGenerator.createIdleDotNoteBitmap(320, false)
                     fallbackViews.setImageViewBitmap(R.id.iv_idle_note, idleBitmap)
                     fallbackViews.setOnClickPendingIntent(R.id.widget_container_layer1, getPendingSelfIntent(context, ACTION_TOGGLE_LAYER))
                     appWidgetManager.updateAppWidget(appWidgetId, fallbackViews)
@@ -133,8 +150,21 @@ class NothingMusicWidgetProvider : AppWidgetProvider() {
             ACTION_PLAY_PAUSE -> MusicNotificationListener.playPause()
             ACTION_NEXT -> MusicNotificationListener.next()
             ACTION_PREV -> MusicNotificationListener.previous()
+            ACTION_GO_LAYER_2 -> {
+                currentLayer = 2
+                updateAllWidgets(context)
+            }
             ACTION_TOGGLE_LAYER -> {
-                currentLayer = if (currentLayer == 2) 3 else 2
+                currentLayer = when (currentLayer) {
+                    1 -> {
+                        // Tocar en Idle despierta el widget, inicia reproducción y muestra Capa 2
+                        MusicNotificationListener.playPause()
+                        2
+                    }
+                    2 -> 3
+                    3 -> 1
+                    else -> 1
+                }
                 updateAllWidgets(context)
             }
         }
