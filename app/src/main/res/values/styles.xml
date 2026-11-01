@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.NothingMusicWidget" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/nothing_red</item>
+        <item name="android:windowBackground">@color/nothing_bg_dark</item>
+        <item name="android:statusBarColor">@color/nothing_bg_dark</item>
+        <item name="android:navigationBarColor">@color/nothing_bg_dark</item>
+    </style>
+</resources>

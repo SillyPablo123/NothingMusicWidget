@@ -1,0 +1,9 @@
+<resources>
+    <color name="nothing_bg_dark">#121212</color>
+    <color name="nothing_widget_bg">#1B1B1B</color>
+    <color name="nothing_red">#D71921</color>
+    <color name="nothing_green">#00E676</color>
+    <color name="nothing_text_primary">#FFFFFF</color>
+    <color name="nothing_text_secondary">#888888</color>
+    <color name="nothing_border">#2A2A2A</color>
+</resources>
